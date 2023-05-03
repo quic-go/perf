@@ -21,14 +21,14 @@ func main() {
 
 	if *server {
 		go func() {
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
 		}()
 		if err := perf.RunServer(*serverAddr); err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		go func() {
-			log.Println(http.ListenAndServe("localhost:6061", nil))
+			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
 		if err := perf.RunClient(*serverAddr, *uploadBytes, *downloadBytes); err != nil {
 			log.Fatal(err)
