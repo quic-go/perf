@@ -3,8 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"github.com/quic-go/perf"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
+
+	"github.com/quic-go/perf"
 )
 
 var tlsConf *tls.Config
@@ -17,10 +20,16 @@ func main() {
 	flag.Parse()
 
 	if *server {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
 		if err := perf.RunServer(*serverAddr); err != nil {
 			log.Fatal(err)
 		}
 	} else {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6061", nil))
+		}()
 		if err := perf.RunClient(*serverAddr, *uploadBytes, *downloadBytes); err != nil {
 			log.Fatal(err)
 		}
