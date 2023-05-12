@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 
 	"github.com/quic-go/perf"
 )
@@ -13,11 +14,16 @@ import (
 var tlsConf *tls.Config
 
 func main() {
-	server := flag.Bool("run-server", false, "Should run as server")
-	serverAddr := flag.String("server-address", "", "Server address")
-	uploadBytes := flag.Uint64("upload-bytes", 0, "Upload bytes")
-	downloadBytes := flag.Uint64("download-bytes", 0, "Download bytes")
+	server := flag.Bool("run-server", false, "run as server, default: false")
+	serverAddr := flag.String("server-address", "", "server address, required")
+	uploadBytes := flag.Uint64("upload-bytes", 0, "upload bytes")
+	downloadBytes := flag.Uint64("download-bytes", 0, "download bytes")
 	flag.Parse()
+
+	if *serverAddr == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	if *server {
 		go func() {
