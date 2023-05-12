@@ -33,7 +33,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	}
 	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
 	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
-	fmt.Printf("{ latencies: [ %f ]}\n", uploadTook.Seconds() + downloadTook.Seconds())
+	fmt.Printf("{ \"latencies\": [ %f ]}\n", uploadTook.Seconds() + downloadTook.Seconds())
 	return nil
 }
 
