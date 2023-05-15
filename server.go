@@ -26,11 +26,9 @@ func RunServer(addr string) error {
 	}
 	tlsConf.NextProtos = []string{ALPN}
 
-	ln, err := quic.ListenAddr(
-		addr,
-		tlsConf,
-		&quic.Config{RequireAddressValidation: func(net.Addr) bool { return false }},
-	)
+	conf := config.Clone()
+	conf.RequireAddressValidation = func(net.Addr) bool { return false }
+	ln, err := quic.ListenAddr(addr, tlsConf, conf)
 	if err != nil {
 		return err
 	}
