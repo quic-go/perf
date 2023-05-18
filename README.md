@@ -6,14 +6,14 @@ This is a (partial) implementation of the [QUIC Perf Protocol](https://datatrack
 
 ### Server
 ```commandline
-go run cmd/main.go -run-server=true -server-address=0.0.0.0:<server port>
+go run cmd/main.go --run-server=true --server-address=0.0.0.0:<server port>
 ```
 
 A pprof endpoint is available at port 6060.
 
 ### Client
 ```commandline
-go run cmd/main.go -server-address=<server ip>:<server port> -upload-bytes=<N> -download-bytes=<M>
+go run cmd/main.go --server-address=<server ip>:<server port> --upload-bytes=<N> --download-bytes=<M>
 ```
 
 A pprof endpoint is available at port 6061.
