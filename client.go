@@ -15,7 +15,7 @@ import (
 type Result struct {
 	ConnectionEstablishedSeconds float64 `json:"connectionEstablishedSeconds"`
 	UploadSeconds                float64 `json:"uploadSeconds"`
-	DownloadSeconds              float64 `json: "downloadSeconds"`
+	DownloadSeconds              float64 `json:"downloadSeconds"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
