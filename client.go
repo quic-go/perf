@@ -3,6 +3,7 @@ package perf
 import (
 	"crypto/tls"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +12,14 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
+type Result struct {
+	ConnectionEstablishedSeconds float64 `json:"connectionEstablishedSeconds"`
+	UploadSeconds                float64 `json:"uploadSeconds"`
+	DownloadSeconds              float64 `json: "downloadSeconds"`
+}
+
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
+	start := time.Now()
 	conn, err := quic.DialAddr(
 		addr,
 		&tls.Config{
@@ -27,13 +35,22 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	if err != nil {
 		return err
 	}
+	connectionEstablishmentTook := time.Since(start)
 	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes)
 	if err != nil {
 		return err
 	}
 	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
 	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
-	fmt.Printf("{ \"latencies\": [ %f ]}\n", uploadTook.Seconds()+downloadTook.Seconds())
+	json, err := json.Marshal(Result{
+		ConnectionEstablishedSeconds: connectionEstablishmentTook.Seconds(),
+		UploadSeconds:                uploadTook.Seconds(),
+		DownloadSeconds:              downloadTook.Seconds(),
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(json))
 	return nil
 }
 
