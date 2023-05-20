@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,13 +11,11 @@ import (
 )
 
 type Options struct {
-	RunServer      bool    `long:"run-server" description:"run as server, default: false"`
-	ServerAddress  string  `long:"server-address" description:"server address, required"`
-	UploadBytes    uint64  `long:"upload-bytes" description:"upload bytes"`
-	DownloadBytes  uint64  `long:"download-bytes" description:"download bytes"`
+	RunServer     bool   `long:"run-server" description:"run as server, default: false"`
+	ServerAddress string `long:"server-address" description:"server address, required"`
+	UploadBytes   uint64 `long:"upload-bytes" description:"upload bytes"`
+	DownloadBytes uint64 `long:"download-bytes" description:"download bytes"`
 }
-
-var tlsConf *tls.Config
 
 func main() {
 	var opt Options
