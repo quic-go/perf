@@ -31,11 +31,11 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	if err != nil {
 		return err
 	}
+	connectionEstablishmentTook := time.Since(start)
 	str, err := conn.OpenStream()
 	if err != nil {
 		return err
 	}
-	connectionEstablishmentTook := time.Since(start)
 	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes)
 	if err != nil {
 		return err
