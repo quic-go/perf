@@ -28,6 +28,7 @@ func RunServer(addr string) error {
 
 	conf := config.Clone()
 	conf.RequireAddressValidation = func(net.Addr) bool { return false }
+	maybeAddQlogger(conf)
 	ln, err := quic.ListenAddr(addr, tlsConf, conf)
 	if err != nil {
 		return err

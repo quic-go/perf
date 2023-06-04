@@ -21,6 +21,8 @@ type Result struct {
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	start := time.Now()
+	config := config.Clone()
+	maybeAddQlogger(config)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := quic.DialAddr(
