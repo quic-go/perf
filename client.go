@@ -1,6 +1,7 @@
 package perf
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
@@ -20,7 +21,10 @@ type Result struct {
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	start := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	conn, err := quic.DialAddr(
+		ctx,
 		addr,
 		&tls.Config{
 			InsecureSkipVerify: true,
