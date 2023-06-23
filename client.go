@@ -14,9 +14,7 @@ import (
 )
 
 type Result struct {
-	ConnectionEstablishedSeconds float64 `json:"connectionEstablishedSeconds"`
-	UploadSeconds                float64 `json:"uploadSeconds"`
-	DownloadSeconds              float64 `json:"downloadSeconds"`
+	Latency float64 `json:"latency"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
@@ -35,7 +33,6 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	if err != nil {
 		return err
 	}
-	connectionEstablishmentTook := time.Since(start)
 	str, err := conn.OpenStream()
 	if err != nil {
 		return err
@@ -47,9 +44,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
 	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
 	json, err := json.Marshal(Result{
-		ConnectionEstablishedSeconds: connectionEstablishmentTook.Seconds(),
-		UploadSeconds:                uploadTook.Seconds(),
-		DownloadSeconds:              downloadTook.Seconds(),
+		Latency: time.Since(start).Seconds(),
 	})
 	if err != nil {
 		return err
