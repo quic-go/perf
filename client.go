@@ -14,7 +14,10 @@ import (
 )
 
 type Result struct {
-	Latency float64 `json:"latency"`
+	Type          string  `json:"type"`
+	TimeSeconds   float64 `json:"timeSeconds"`
+	UploadBytes   uint    `json:"uploadBytes"`
+	DownloadBytes uint    `json:"downloadBytes"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
@@ -44,7 +47,10 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
 	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
 	json, err := json.Marshal(Result{
-		Latency: time.Since(start).Seconds(),
+		TimeSeconds: time.Since(start).Seconds(),
+		Type: "final",
+		UploadBytes: uint(uploadBytes),
+		DownloadBytes: uint(downloadBytes),
 	})
 	if err != nil {
 		return err
@@ -63,7 +69,28 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	// upload data
 	b = make([]byte, 16*1024)
 	uploadStart := time.Now()
+
+	lastReportTime := time.Now()
+	lastReportWrite := 0
+
 	for uploadBytes > 0 {
+		// TODO: Is this expensive in go? Is there a cheaper API with less resolution?
+		now := time.Now()
+		if now.Sub(lastReportTime) > time.Second {
+			jsonB, err := json.Marshal(Result{
+				TimeSeconds: now.Sub(lastReportTime).Seconds(),
+				UploadBytes: uint(lastReportWrite),
+				Type: "intermediary",
+			})
+			if err != nil {
+				log.Fatalf("failed to marshal perf result: %s", err)
+			}
+			fmt.Println(string(jsonB))
+
+			lastReportTime = now
+			lastReportWrite = 0
+		}
+
 		if uploadBytes < uint64(len(b)) {
 			b = b[:uploadBytes]
 		}
@@ -72,7 +99,9 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 			return 0, 0, err
 		}
 		uploadBytes -= uint64(n)
+		lastReportWrite += n
 	}
+
 	if err := str.Close(); err != nil {
 		return 0, 0, err
 	}
