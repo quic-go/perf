@@ -13,8 +13,8 @@ import (
 type Options struct {
 	RunServer     bool   `long:"run-server" description:"run as server, default: false"`
 	ServerAddress string `long:"server-address" description:"server address, required"`
-	UploadBytes   uint64 `long:"upload-bytes" description:"upload bytes"`
-	DownloadBytes uint64 `long:"download-bytes" description:"download bytes"`
+	UploadBytes   string `long:"upload-bytes" description:"upload bytes #[KMG]"`
+	DownloadBytes string `long:"download-bytes" description:"download bytes #[KMG]"`
 }
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
-		if err := perf.RunClient(opt.ServerAddress, opt.UploadBytes, opt.DownloadBytes); err != nil {
+		if err := perf.RunClient(opt.ServerAddress, perf.ToBytes(opt.UploadBytes), perf.ToBytes(opt.DownloadBytes)); err != nil {
 			log.Fatal(err)
 		}
 	}
