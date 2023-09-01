@@ -19,12 +19,13 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-func RunServer(addr string) error {
+func RunServer(addr string, keyLogFile io.Writer) error {
 	tlsConf, err := generateSelfSignedTLSConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 	tlsConf.NextProtos = []string{ALPN}
+	tlsConf.KeyLogWriter = keyLogFile
 
 	conf := config.Clone()
 	conf.RequireAddressValidation = func(net.Addr) bool { return false }
