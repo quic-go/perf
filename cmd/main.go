@@ -41,7 +41,7 @@ func main() {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
-		if err := perf.RunClient(opt.ServerAddress, perf.ToBytes(opt.UploadBytes), perf.ToBytes(opt.DownloadBytes)); err != nil {
+		if err := perf.RunClient(opt.ServerAddress, perf.ParseBytes(opt.UploadBytes), perf.ParseBytes(opt.DownloadBytes)); err != nil {
 			log.Fatal(err)
 		}
 	}

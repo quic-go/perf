@@ -26,8 +26,8 @@ func formatBytes(b uint64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
-func ToBytes(input string) (output uint64) {
-	if len(input) == 0 {
+func ParseBytes(input string) uint64 {
+	if input == "" {
 		return 0
 	}
 	var kmg uint64 = 1
