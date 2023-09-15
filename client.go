@@ -111,12 +111,33 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	b = b[:cap(b)]
 	remaining := downloadBytes
 	downloadStart := time.Now()
+
+	lastReportTime = time.Now()
+	lastReportRead := 0
+
 	for remaining > 0 {
+		now := time.Now()
+		if now.Sub(lastReportTime) > time.Second {
+			jsonB, err := json.Marshal(Result{
+				TimeSeconds: now.Sub(lastReportTime).Seconds(),
+				DownloadBytes: uint(lastReportRead),
+				Type: "intermediary",
+			})
+			if err != nil {
+				log.Fatalf("failed to marshal perf result: %s", err)
+			}
+			fmt.Println(string(jsonB))
+
+			lastReportTime = now
+			lastReportRead = 0
+		}
+
 		n, err := str.Read(b)
 		if uint64(n) > remaining {
 			return 0, 0, fmt.Errorf("server sent more data than expected, expected %d, got %d", downloadBytes, remaining+uint64(n))
 		}
 		remaining -= uint64(n)
+		lastReportRead += n
 		if err != nil {
 			if err == io.EOF {
 				if remaining == 0 {
