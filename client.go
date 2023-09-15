@@ -20,7 +20,7 @@ type Result struct {
 	DownloadBytes uint    `json:"downloadBytes"`
 }
 
-func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
+func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -30,6 +30,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64) error {
 		&tls.Config{
 			InsecureSkipVerify: true,
 			NextProtos:         []string{ALPN},
+			KeyLogWriter:       keyLogFile,
 		},
 		config,
 	)

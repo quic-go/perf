@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,9 +13,10 @@ import (
 
 type Options struct {
 	RunServer     bool   `long:"run-server" description:"run as server, default: false"`
+	KeyLogFile    string `long:"key-log" description:"export TLS keys"`
 	ServerAddress string `long:"server-address" description:"server address, required"`
-	UploadBytes   uint64 `long:"upload-bytes" description:"upload bytes"`
-	DownloadBytes uint64 `long:"download-bytes" description:"download bytes"`
+	UploadBytes   string `long:"upload-bytes" description:"upload bytes #[KMG]"`
+	DownloadBytes string `long:"download-bytes" description:"download bytes #[KMG]"`
 }
 
 func main() {
@@ -30,18 +32,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	var keyLogFile io.Writer
+	if opt.KeyLogFile != "" {
+		f, err := os.Create(opt.KeyLogFile)
+		if err != nil {
+			log.Fatalf("failed to create key log file: %s", err)
+		}
+		defer f.Close()
+		keyLogFile = f
+	}
+
 	if opt.RunServer {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
 		}()
-		if err := perf.RunServer(opt.ServerAddress); err != nil {
+		if err := perf.RunServer(opt.ServerAddress, keyLogFile); err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
-		if err := perf.RunClient(opt.ServerAddress, opt.UploadBytes, opt.DownloadBytes); err != nil {
+		if err := perf.RunClient(
+			opt.ServerAddress,
+			perf.ParseBytes(opt.UploadBytes),
+			perf.ParseBytes(opt.DownloadBytes),
+			keyLogFile,
+		); err != nil {
 			log.Fatal(err)
 		}
 	}
