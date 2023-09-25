@@ -48,9 +48,9 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
 	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
 	json, err := json.Marshal(Result{
-		TimeSeconds: time.Since(start).Seconds(),
-		Type: "final",
-		UploadBytes: uint(uploadBytes),
+		TimeSeconds:   time.Since(start).Seconds(),
+		Type:          "final",
+		UploadBytes:   uint(uploadBytes),
 		DownloadBytes: uint(downloadBytes),
 	})
 	if err != nil {
@@ -75,13 +75,12 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	lastReportWrite := 0
 
 	for uploadBytes > 0 {
-		// TODO: Is this expensive in go? Is there a cheaper API with less resolution?
 		now := time.Now()
 		if now.Sub(lastReportTime) > time.Second {
 			jsonB, err := json.Marshal(Result{
 				TimeSeconds: now.Sub(lastReportTime).Seconds(),
 				UploadBytes: uint(lastReportWrite),
-				Type: "intermediary",
+				Type:        "intermediary",
 			})
 			if err != nil {
 				log.Fatalf("failed to marshal perf result: %s", err)
@@ -120,9 +119,9 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 		now := time.Now()
 		if now.Sub(lastReportTime) > time.Second {
 			jsonB, err := json.Marshal(Result{
-				TimeSeconds: now.Sub(lastReportTime).Seconds(),
+				TimeSeconds:   now.Sub(lastReportTime).Seconds(),
 				DownloadBytes: uint(lastReportRead),
-				Type: "intermediary",
+				Type:          "intermediary",
 			})
 			if err != nil {
 				log.Fatalf("failed to marshal perf result: %s", err)
