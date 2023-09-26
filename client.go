@@ -16,8 +16,8 @@ import (
 type Result struct {
 	Type          string  `json:"type"`
 	TimeSeconds   float64 `json:"timeSeconds"`
-	UploadBytes   uint    `json:"uploadBytes"`
-	DownloadBytes uint    `json:"downloadBytes"`
+	UploadBytes   uint64    `json:"uploadBytes"`
+	DownloadBytes uint64    `json:"downloadBytes"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
@@ -50,8 +50,8 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	json, err := json.Marshal(Result{
 		TimeSeconds:   time.Since(start).Seconds(),
 		Type:          "final",
-		UploadBytes:   uint(uploadBytes),
-		DownloadBytes: uint(downloadBytes),
+		UploadBytes:   uploadBytes,
+		DownloadBytes: downloadBytes,
 	})
 	if err != nil {
 		return err
@@ -72,14 +72,14 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	uploadStart := time.Now()
 
 	lastReportTime := time.Now()
-	lastReportWrite := 0
+	lastReportWrite := uint64(0)
 
 	for uploadBytes > 0 {
 		now := time.Now()
-		if now.Sub(lastReportTime) > time.Second {
+		if now.Sub(lastReportTime) >= time.Second {
 			jsonB, err := json.Marshal(Result{
 				TimeSeconds: now.Sub(lastReportTime).Seconds(),
-				UploadBytes: uint(lastReportWrite),
+				UploadBytes: lastReportWrite,
 				Type:        "intermediary",
 			})
 			if err != nil {
@@ -99,7 +99,7 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 			return 0, 0, err
 		}
 		uploadBytes -= uint64(n)
-		lastReportWrite += n
+		lastReportWrite += uint64(n)
 	}
 
 	if err := str.Close(); err != nil {
@@ -113,14 +113,14 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	downloadStart := time.Now()
 
 	lastReportTime = time.Now()
-	lastReportRead := 0
+	lastReportRead := uint64(0)
 
 	for remaining > 0 {
 		now := time.Now()
-		if now.Sub(lastReportTime) > time.Second {
+		if now.Sub(lastReportTime) >= time.Second {
 			jsonB, err := json.Marshal(Result{
 				TimeSeconds:   now.Sub(lastReportTime).Seconds(),
-				DownloadBytes: uint(lastReportRead),
+				DownloadBytes: lastReportRead,
 				Type:          "intermediary",
 			})
 			if err != nil {
@@ -137,7 +137,7 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 			return 0, 0, fmt.Errorf("server sent more data than expected, expected %d, got %d", downloadBytes, remaining+uint64(n))
 		}
 		remaining -= uint64(n)
-		lastReportRead += n
+		lastReportRead += uint64(n)
 		if err != nil {
 			if err == io.EOF {
 				if remaining == 0 {
