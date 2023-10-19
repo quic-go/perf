@@ -16,8 +16,8 @@ import (
 type Result struct {
 	Type          string  `json:"type"`
 	TimeSeconds   float64 `json:"timeSeconds"`
-	UploadBytes   uint64    `json:"uploadBytes"`
-	DownloadBytes uint64    `json:"downloadBytes"`
+	UploadBytes   uint64  `json:"uploadBytes"`
+	DownloadBytes uint64  `json:"downloadBytes"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
