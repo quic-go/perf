@@ -1,6 +1,7 @@
 module github.com/quic-go/perf
 
-go 1.20
+go 1.21
+
 
 require (
 	github.com/jessevdk/go-flags v1.5.0
