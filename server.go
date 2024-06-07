@@ -30,7 +30,7 @@ func RunQUICServer(addr string, keyLogFile io.Writer) error {
 	if err != nil {
 		return err
 	}
-	log.Println("Listening on", ln.Addr())
+	log.Println("Listening on UDP", ln.Addr())
 	defer ln.Close()
 	for {
 		conn, err := ln.Accept(context.Background())
@@ -55,7 +55,7 @@ func RunTLSServer(addr string, keyLogFile io.Writer) error {
 	if err != nil {
 		return err
 	}
-	log.Println("Listening on", ln.Addr())
+	log.Println("Listening on TCP", ln.Addr())
 	defer ln.Close()
 	for {
 		conn, err := ln.Accept()
