@@ -13,6 +13,7 @@ import (
 
 type Options struct {
 	RunServer     bool   `long:"run-server" description:"run as server, default: false"`
+	TLS           bool   `long:"tcp-tls" description:"run on TLS 1.3/TCP, default: false"`
 	KeyLogFile    string `long:"key-log" description:"export TLS keys"`
 	ServerAddress string `long:"server-address" description:"server address, required"`
 	UploadBytes   string `long:"upload-bytes" description:"upload bytes #[KMG]"`
@@ -46,14 +47,31 @@ func main() {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
 		}()
-		if err := perf.RunServer(opt.ServerAddress, keyLogFile); err != nil {
+		if opt.TLS {
+			if err := perf.RunTLSServer(opt.ServerAddress, keyLogFile); err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+		if err := perf.RunQUICServer(opt.ServerAddress, keyLogFile); err != nil {
 			log.Fatal(err)
 		}
 	} else {
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
-		if err := perf.RunClient(
+		if opt.TLS {
+			if err := perf.RunTLSClient(
+				opt.ServerAddress,
+				perf.ParseBytes(opt.UploadBytes),
+				perf.ParseBytes(opt.DownloadBytes),
+				keyLogFile,
+			); err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
+		if err := perf.RunQUICClient(
 			opt.ServerAddress,
 			perf.ParseBytes(opt.UploadBytes),
 			perf.ParseBytes(opt.DownloadBytes),

@@ -20,9 +20,11 @@ type Result struct {
 	DownloadBytes uint64  `json:"downloadBytes"`
 }
 
-func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
+const handshakeTimeout = 5 * time.Second
+
+func RunQUICClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
 	start := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), handshakeTimeout)
 	defer cancel()
 	conn, err := quic.DialAddr(
 		ctx,
@@ -31,6 +33,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 			InsecureSkipVerify: true,
 			NextProtos:         []string{ALPN},
 			KeyLogWriter:       keyLogFile,
+			MinVersion:         tls.VersionTLS13,
 		},
 		config,
 	)
@@ -45,20 +48,45 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	if err != nil {
 		return err
 	}
-	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
-	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
-	json, err := json.Marshal(Result{
-		TimeSeconds:   time.Since(start).Seconds(),
-		Type:          "final",
-		UploadBytes:   uploadBytes,
-		DownloadBytes: downloadBytes,
-	})
+	printResults(uploadBytes, downloadBytes, uploadTook, downloadTook, time.Since(start))
+	return nil
+}
+
+func RunTLSClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
+	start := time.Now()
+	dialer := &tls.Dialer{
+		Config: &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{ALPN},
+			KeyLogWriter:       keyLogFile,
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), handshakeTimeout)
+	defer cancel()
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(json))
+	uploadTook, downloadTook, err := handleClientStream(&writeCloseReadWriteCloser{Conn: conn.(*tls.Conn)}, uploadBytes, downloadBytes)
+	if err != nil {
+		return err
+	}
+	printResults(uploadBytes, downloadBytes, uploadTook, downloadTook, time.Since(start))
 	return nil
 }
+
+type writeCloseReadWriteCloser struct {
+	Conn interface {
+		io.ReadWriter
+		CloseWrite() error
+	}
+}
+
+var _ io.ReadWriteCloser = &writeCloseReadWriteCloser{}
+
+func (c *writeCloseReadWriteCloser) Read(b []byte) (int, error)  { return c.Conn.Read(b) }
+func (c *writeCloseReadWriteCloser) Write(b []byte) (int, error) { return c.Conn.Write(b) }
+func (c *writeCloseReadWriteCloser) Close() error                { return c.Conn.CloseWrite() }
 
 func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint64) (uploadTook, downloadTook time.Duration, err error) {
 	b := make([]byte, 8)
@@ -149,4 +177,19 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 		}
 	}
 	return uploadTook, time.Since(downloadStart), nil
+}
+
+func printResults(uploadBytes, downloadBytes uint64, uploadTook, downloadTook, total time.Duration) {
+	log.Printf("uploaded %s: %.2fs (%s/s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBytes(bandwidth(uploadBytes, uploadTook)))
+	log.Printf("downloaded %s: %.2fs (%s/s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBytes(bandwidth(downloadBytes, downloadTook)))
+	json, err := json.Marshal(Result{
+		TimeSeconds:   total.Seconds(),
+		Type:          "final",
+		UploadBytes:   uploadBytes,
+		DownloadBytes: downloadBytes,
+	})
+	if err != nil {
+		log.Fatalf("failed to marshal JSON: %v", err)
+	}
+	fmt.Println(string(json))
 }

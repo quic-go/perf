@@ -19,13 +19,11 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-func RunServer(addr string, keyLogFile io.Writer) error {
-	tlsConf, err := generateSelfSignedTLSConfig()
+func RunQUICServer(addr string, keyLogFile io.Writer) error {
+	tlsConf, err := generateSelfSignedTLSConfig(keyLogFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	tlsConf.NextProtos = []string{ALPN}
-	tlsConf.KeyLogWriter = keyLogFile
 
 	conf := config.Clone()
 	ln, err := quic.ListenAddr(addr, tlsConf, conf)
@@ -41,6 +39,31 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 		}
 		go func(conn quic.Connection) {
 			if err := handleConn(conn); err != nil {
+				log.Printf("handling conn from %s failed: %s", conn.RemoteAddr(), err)
+			}
+		}(conn)
+	}
+}
+
+func RunTLSServer(addr string, keyLogFile io.Writer) error {
+	tlsConf, err := generateSelfSignedTLSConfig(keyLogFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tlsConf.MinVersion = tls.VersionTLS13
+	ln, err := tls.Listen("tcp", addr, tlsConf)
+	if err != nil {
+		return err
+	}
+	log.Println("Listening on", ln.Addr())
+	defer ln.Close()
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			return fmt.Errorf("accept errored: %w", err)
+		}
+		go func(conn net.Conn) {
+			if err := handleServerStream(conn); err != nil {
 				log.Printf("handling conn from %s failed: %s", conn.RemoteAddr(), err)
 			}
 		}(conn)
@@ -91,7 +114,7 @@ func handleServerStream(str io.ReadWriteCloser) error {
 	return str.Close()
 }
 
-func generateSelfSignedTLSConfig() (*tls.Config, error) {
+func generateSelfSignedTLSConfig(keyLogFile io.Writer) (*tls.Config, error) {
 	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -133,5 +156,7 @@ func generateSelfSignedTLSConfig() (*tls.Config, error) {
 
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{ALPN},
+		KeyLogWriter: keyLogFile,
 	}, nil
 }
