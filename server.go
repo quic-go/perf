@@ -28,7 +28,6 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 	tlsConf.KeyLogWriter = keyLogFile
 
 	conf := config.Clone()
-	conf.RequireAddressValidation = func(net.Addr) bool { return false }
 	ln, err := quic.ListenAddr(addr, tlsConf, conf)
 	if err != nil {
 		return err
