@@ -39,7 +39,7 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 		if err != nil {
 			return fmt.Errorf("accept errored: %w", err)
 		}
-		go func(conn quic.Connection) {
+		go func(conn *quic.Conn) {
 			if err := handleConn(conn); err != nil {
 				log.Printf("handling conn from %s failed: %s", conn.RemoteAddr(), err)
 			}
@@ -47,13 +47,13 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 	}
 }
 
-func handleConn(conn quic.Connection) error {
+func handleConn(conn *quic.Conn) error {
 	for {
 		str, err := conn.AcceptStream(context.Background())
 		if err != nil {
 			return err
 		}
-		go func(str quic.Stream) {
+		go func(str *quic.Stream) {
 			if err := handleServerStream(str); err != nil {
 				log.Printf("handling stream from %s failed: %s", conn.RemoteAddr(), err)
 			}
