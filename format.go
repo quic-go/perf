@@ -9,10 +9,6 @@ import (
 
 var kmgMap = map[string]uint64{"K": 1024, "M": 1024 * 1024, "G": 1024 * 1024 * 1024}
 
-func bandwidth(b uint64, d time.Duration) uint64 {
-	return uint64(float64(b) / d.Seconds())
-}
-
 func formatBytes(b uint64) string {
 	const unit = 1024
 	if b < unit {
@@ -23,7 +19,21 @@ func formatBytes(b uint64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+	return fmt.Sprintf("%.2f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+func formatBandwidth(bytes uint64, d time.Duration) string {
+	b := float64(8*bytes) / d.Seconds()
+	const unit = 1000
+	if b < unit {
+		return fmt.Sprintf("%.2f bps", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.2f %cbps", float64(b)/float64(div), "kmgtpe"[exp])
 }
 
 func ParseBytes(input string) uint64 {
