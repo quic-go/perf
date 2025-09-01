@@ -37,6 +37,8 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	if err != nil {
 		return err
 	}
+	defer conn.CloseWithError(quic.ApplicationErrorCode(quic.NoError), "")
+
 	str, err := conn.OpenStream()
 	if err != nil {
 		return err
