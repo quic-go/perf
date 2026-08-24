@@ -40,9 +40,8 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 			return fmt.Errorf("accept errored: %w", err)
 		}
 		go func(conn *quic.Conn) {
-			if err := handleConn(conn); err != nil {
-				log.Printf("handling conn from %s failed: %s", conn.RemoteAddr(), err)
-			}
+			err := handleConn(conn)
+			log.Printf("handling conn from %s failed: %s", conn.RemoteAddr(), err)
 		}(conn)
 	}
 }
