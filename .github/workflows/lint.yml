@@ -2,17 +2,13 @@ on: [push, pull_request]
 
 jobs:
   check:
-    strategy:
-      fail-fast: false
-      matrix:
-        go: [ "1.24.x", "1.25.x" ]
     runs-on: ubuntu-latest
     name: Lint
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version: ${{ matrix.go }}
+          go-version-file: go.mod
       - name: Check for //go:build ignore in .go files
         run: |
           IGNORED_FILES=$(grep -rl '//go:build ignore' . --include='*.go') || true
