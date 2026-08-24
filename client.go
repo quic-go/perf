@@ -14,10 +14,12 @@ import (
 )
 
 type Result struct {
-	Type          string  `json:"type"`
-	TimeSeconds   float64 `json:"timeSeconds"`
-	UploadBytes   uint64  `json:"uploadBytes"`
-	DownloadBytes uint64  `json:"downloadBytes"`
+	Type            string  `json:"type"`
+	TimeSeconds     float64 `json:"timeSeconds"`
+	UploadBytes     uint64  `json:"uploadBytes"`
+	UploadSeconds   float64 `json:"uploadSeconds,omitempty"`
+	DownloadBytes   uint64  `json:"downloadBytes"`
+	DownloadSeconds float64 `json:"downloadSeconds,omitempty"`
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
@@ -50,10 +52,12 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	log.Printf("uploaded %s: %.2fs (%s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBandwidth(uploadBytes, uploadTook))
 	log.Printf("downloaded %s: %.2fs (%s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBandwidth(downloadBytes, downloadTook))
 	json, err := json.Marshal(Result{
-		TimeSeconds:   time.Since(start).Seconds(),
-		Type:          "final",
-		UploadBytes:   uploadBytes,
-		DownloadBytes: downloadBytes,
+		TimeSeconds:     time.Since(start).Seconds(),
+		Type:            "final",
+		UploadBytes:     uploadBytes,
+		UploadSeconds:   uploadTook.Seconds(),
+		DownloadBytes:   downloadBytes,
+		DownloadSeconds: downloadTook.Seconds(),
 	})
 	if err != nil {
 		return err
