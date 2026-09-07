@@ -23,7 +23,6 @@ type Result struct {
 }
 
 func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
-	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := quic.DialAddr(
@@ -41,6 +40,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	}
 	defer conn.CloseWithError(quic.ApplicationErrorCode(quic.NoError), "")
 
+	start := time.Now()
 	str, err := conn.OpenStream()
 	if err != nil {
 		return err
@@ -49,10 +49,11 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	if err != nil {
 		return err
 	}
+	took := time.Since(start)
 	log.Printf("uploaded %s: %.2fs (%s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBandwidth(uploadBytes, uploadTook))
 	log.Printf("downloaded %s: %.2fs (%s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBandwidth(downloadBytes, downloadTook))
 	json, err := json.Marshal(Result{
-		TimeSeconds:     time.Since(start).Seconds(),
+		TimeSeconds:     took.Seconds(),
 		Type:            "final",
 		UploadBytes:     uploadBytes,
 		UploadSeconds:   uploadTook.Seconds(),
