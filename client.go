@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -122,7 +123,7 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	lastReportTime = time.Now()
 	lastReportRead := uint64(0)
 
-	for remaining > 0 {
+	for {
 		now := time.Now()
 		if now.Sub(lastReportTime) >= time.Second {
 			jsonB, err := json.Marshal(Result{
@@ -141,12 +142,12 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 
 		n, err := str.Read(b)
 		if uint64(n) > remaining {
-			return 0, 0, fmt.Errorf("server sent more data than expected, expected %d, got %d", downloadBytes, remaining+uint64(n))
+			return 0, 0, fmt.Errorf("server sent more data than expected, expected %d, got %d", downloadBytes, downloadBytes-remaining+uint64(n))
 		}
 		remaining -= uint64(n)
 		lastReportRead += uint64(n)
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				if remaining == 0 {
 					break
 				}
