@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -12,24 +13,30 @@ import (
 )
 
 type Options struct {
-	RunServer     bool   `long:"run-server" description:"run as server, default: false"`
-	KeyLogFile    string `long:"key-log" description:"export TLS keys"`
-	ServerAddress string `long:"server-address" description:"server address, required"`
-	UploadBytes   string `long:"upload-bytes" description:"upload bytes #[KMG]"`
-	DownloadBytes string `long:"download-bytes" description:"download bytes #[KMG]"`
+	KeyLogFile string   `long:"key-log" description:"export TLS keys"`
+	Address    string   `long:"address" required:"true" description:"address to listen on or connect to"`
+	Server     struct{} `command:"server" description:"run the server"`
+	Throughput struct {
+		UploadBytes   string `long:"upload-bytes" description:"upload bytes #[KMG]"`
+		DownloadBytes string `long:"download-bytes" description:"download bytes #[KMG]"`
+	} `command:"throughput" description:"measure throughput"`
 }
 
 func main() {
 	var opt Options
-	parser := flags.NewParser(&opt, flags.IgnoreUnknown)
-	_, err := parser.Parse()
+	parser := flags.NewParser(&opt, flags.Default)
+	args, err := parser.Parse()
 	if err != nil {
-		panic(err)
-	}
-
-	if opt.ServerAddress == "" {
-		parser.WriteHelp(os.Stdout)
+		if flagsErr, ok := errors.AsType[*flags.Error](err); ok && flagsErr.Type == flags.ErrHelp {
+			return
+		}
 		os.Exit(1)
+	}
+	if len(args) > 0 {
+		log.Fatalf("unexpected arguments: %v", args)
+	}
+	if opt.Address == "" {
+		log.Fatal("address must not be empty")
 	}
 
 	var keyLogFile io.Writer
@@ -42,24 +49,24 @@ func main() {
 		keyLogFile = f
 	}
 
-	if opt.RunServer {
+	switch parser.Active.Name {
+	case "server":
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
 		}()
-		if err := perf.RunServer(opt.ServerAddress, keyLogFile); err != nil {
-			log.Fatal(err)
-		}
-	} else {
+		err = perf.RunServer(opt.Address, keyLogFile)
+	case "throughput":
 		go func() {
 			log.Println(http.ListenAndServe("0.0.0.0:6061", nil))
 		}()
-		if err := perf.RunClient(
-			opt.ServerAddress,
-			perf.ParseBytes(opt.UploadBytes),
-			perf.ParseBytes(opt.DownloadBytes),
+		err = perf.RunClient(
+			opt.Address,
+			perf.ParseBytes(opt.Throughput.UploadBytes),
+			perf.ParseBytes(opt.Throughput.DownloadBytes),
 			keyLogFile,
-		); err != nil {
-			log.Fatal(err)
-		}
+		)
+	}
+	if err != nil {
+		log.Fatal(err)
 	}
 }
