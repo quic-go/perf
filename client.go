@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,12 +17,12 @@ type Result struct {
 	Type            string  `json:"type"`
 	TimeSeconds     float64 `json:"timeSeconds"`
 	UploadBytes     uint64  `json:"uploadBytes"`
-	UploadSeconds   float64 `json:"uploadSeconds,omitempty"`
+	UploadSeconds   float64 `json:"uploadSeconds,omitzero"`
 	DownloadBytes   uint64  `json:"downloadBytes"`
-	DownloadSeconds float64 `json:"downloadSeconds,omitempty"`
+	DownloadSeconds float64 `json:"downloadSeconds,omitzero"`
 }
 
-func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer) error {
+func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Writer, measurements chan<- any) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := quic.DialAddr(
@@ -46,29 +45,25 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	if err != nil {
 		return err
 	}
-	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes)
+	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes, measurements)
 	if err != nil {
 		return err
 	}
 	took := time.Since(start)
 	log.Printf("uploaded %s: %.2fs (%s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBandwidth(uploadBytes, uploadTook))
 	log.Printf("downloaded %s: %.2fs (%s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBandwidth(downloadBytes, downloadTook))
-	json, err := json.Marshal(Result{
+	measurements <- Result{
 		TimeSeconds:     took.Seconds(),
 		Type:            "final",
 		UploadBytes:     uploadBytes,
 		UploadSeconds:   uploadTook.Seconds(),
 		DownloadBytes:   downloadBytes,
 		DownloadSeconds: downloadTook.Seconds(),
-	})
-	if err != nil {
-		return err
 	}
-	fmt.Println(string(json))
 	return nil
 }
 
-func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint64) (uploadTook, downloadTook time.Duration, err error) {
+func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint64, measurements chan<- any) (uploadTook, downloadTook time.Duration, err error) {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, downloadBytes)
 	if _, err := str.Write(b); err != nil {
@@ -85,15 +80,11 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	for uploadBytes > 0 {
 		now := time.Now()
 		if now.Sub(lastReportTime) >= time.Second {
-			jsonB, err := json.Marshal(Result{
+			measurements <- Result{
 				TimeSeconds: now.Sub(lastReportTime).Seconds(),
 				UploadBytes: lastReportWrite,
 				Type:        "intermediary",
-			})
-			if err != nil {
-				log.Fatalf("failed to marshal perf result: %s", err)
 			}
-			fmt.Println(string(jsonB))
 
 			lastReportTime = now
 			lastReportWrite = 0
@@ -126,15 +117,11 @@ func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint6
 	for {
 		now := time.Now()
 		if now.Sub(lastReportTime) >= time.Second {
-			jsonB, err := json.Marshal(Result{
+			measurements <- Result{
 				TimeSeconds:   now.Sub(lastReportTime).Seconds(),
 				DownloadBytes: lastReportRead,
 				Type:          "intermediary",
-			})
-			if err != nil {
-				log.Fatalf("failed to marshal perf result: %s", err)
 			}
-			fmt.Println(string(jsonB))
 
 			lastReportTime = now
 			lastReportRead = 0
