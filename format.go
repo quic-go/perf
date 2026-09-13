@@ -23,6 +23,9 @@ func formatBytes(b uint64) string {
 }
 
 func formatBandwidth(bytes uint64, d time.Duration) string {
+	if d <= 0 {
+		return "n/a"
+	}
 	b := float64(8*bytes) / d.Seconds()
 	const unit = 1000
 	if b < unit {

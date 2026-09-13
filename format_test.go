@@ -1,6 +1,7 @@
 package perf
 
 import (
+	"encoding/json/v2"
 	"testing"
 	"time"
 
@@ -17,10 +18,19 @@ func TestFormatBytes(t *testing.T) {
 }
 
 func TestFormatBandwidth(t *testing.T) {
+	require.Equal(t, "n/a", formatBandwidth(100, 0))
+	require.Equal(t, "n/a", formatBandwidth(0, 0))
+	require.Equal(t, "n/a", formatBandwidth(100, -time.Second))
 	require.Equal(t, "800.00 bps", formatBandwidth(100, time.Second))
 	require.Equal(t, "400.00 bps", formatBandwidth(100, 2*time.Second))
 	require.Equal(t, "1.00 kbps", formatBandwidth(125, time.Second))
 	require.Equal(t, "8.00 mbps", formatBandwidth(1e6, time.Second))
 	require.Equal(t, "1.60 mbps", formatBandwidth(1e6, 5*time.Second))
 	require.Equal(t, "9.87 kbps", formatBandwidth(1234, time.Second))
+}
+
+func TestResultJSON(t *testing.T) {
+	data, err := json.Marshal(Result{Type: "intermediary", TimeSeconds: 1, UploadBytes: 1024})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"type":"intermediary","timeSeconds":1,"uploadBytes":1024,"downloadBytes":0}`, string(data))
 }
