@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/quic-go/quic-go v0.61.0
+	github.com/quic-go/quic-go v0.64.0
 	github.com/stretchr/testify v1.12.1
 )
 
