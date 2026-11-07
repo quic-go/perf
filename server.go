@@ -55,14 +55,14 @@ func handleConn(conn *quic.Conn) {
 			log.Printf("connection stats for %s: %+v", conn.RemoteAddr(), conn.ConnectionStats())
 		})
 		go func(str *quic.Stream) {
-			if err := handleServerStream(str); err != nil {
+			if err := handleStream(str); err != nil {
 				log.Printf("handling stream from %s failed: %s", conn.RemoteAddr(), err)
 			}
 		}(str)
 	}
 }
 
-func handleServerStream(str io.ReadWriteCloser) error {
+func handleStream(str io.ReadWriteCloser) error {
 	b := make([]byte, 8)
 	if _, err := io.ReadFull(str, b); err != nil {
 		return err

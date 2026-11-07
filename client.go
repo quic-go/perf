@@ -45,7 +45,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	if err != nil {
 		return err
 	}
-	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes, measurements)
+	uploadTook, downloadTook, err := transfer(str, uploadBytes, downloadBytes, measurements)
 	took := time.Since(start)
 	// Close the connection before logging the statistics, so that they're final.
 	conn.CloseWithError(quic.ApplicationErrorCode(quic.NoError), "")
@@ -66,7 +66,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 	return nil
 }
 
-func handleClientStream(str io.ReadWriteCloser, uploadBytes, downloadBytes uint64, measurements chan<- any) (uploadTook, downloadTook time.Duration, err error) {
+func transfer(str io.ReadWriteCloser, uploadBytes, downloadBytes uint64, measurements chan<- any) (uploadTook, downloadTook time.Duration, err error) {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, downloadBytes)
 	if _, err := str.Write(b); err != nil {
