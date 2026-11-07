@@ -44,11 +44,18 @@ func RunServer(addr string, keyLogFile io.Writer) error {
 }
 
 func handleConn(conn *quic.Conn) {
+	var hasStreams bool
 	for {
 		str, err := conn.AcceptStream(context.Background())
 		if err != nil {
+			// Handshake benchmark connections don't open streams.
+			// Logging them would add one line per handshake.
+			if hasStreams {
+				log.Printf("connection stats for %s: %+v", conn.RemoteAddr(), conn.ConnectionStats())
+			}
 			return
 		}
+		hasStreams = true
 		go func(str *quic.Stream) {
 			if err := handleServerStream(str); err != nil {
 				log.Printf("handling stream from %s failed: %s", conn.RemoteAddr(), err)

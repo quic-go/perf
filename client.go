@@ -46,6 +46,7 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 		return err
 	}
 	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes, measurements)
+	log.Printf("connection stats: %+v", conn.ConnectionStats())
 	if err != nil {
 		return err
 	}
