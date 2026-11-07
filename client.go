@@ -46,11 +46,13 @@ func RunClient(addr string, uploadBytes, downloadBytes uint64, keyLogFile io.Wri
 		return err
 	}
 	uploadTook, downloadTook, err := handleClientStream(str, uploadBytes, downloadBytes, measurements)
+	took := time.Since(start)
+	// Close the connection before logging the statistics, so that they're final.
+	conn.CloseWithError(quic.ApplicationErrorCode(quic.NoError), "")
 	log.Printf("connection stats: %+v", conn.ConnectionStats())
 	if err != nil {
 		return err
 	}
-	took := time.Since(start)
 	log.Printf("uploaded %s: %.2fs (%s)", formatBytes(uploadBytes), uploadTook.Seconds(), formatBandwidth(uploadBytes, uploadTook))
 	log.Printf("downloaded %s: %.2fs (%s)", formatBytes(downloadBytes), downloadTook.Seconds(), formatBandwidth(downloadBytes, downloadTook))
 	measurements <- Result{
